@@ -29,20 +29,25 @@ type VaultFS struct {
 	root       string
 	conn       *fuse.Conn
 	mountpoint string
+	logger	   *logrus.Entry	// Context aware logger
 }
 
 // New returns a new VaultFS
-func New(config *api.Config, mountpoint, token, root string) (*VaultFS, error) {
+func New(config *api.Config, mountpoint string, root string, token string) (*VaultFS, error) {
 	client, err := api.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
-	client.SetToken(token)
+	// Only set token if specified - it is optional (i.e. client cert auth).
+	if token != "" {
+		client.SetToken(token)
+	}
 
 	return &VaultFS{
 		Client:     client,
 		root:       root,
 		mountpoint: mountpoint,
+		logger: logrus.WithField("address", config.Address),
 	}, nil
 }
 
@@ -80,7 +85,7 @@ func (v *VaultFS) Unmount() error {
 		return err
 	}
 
-	logrus.Debug("closed connection, waiting for ready")
+	v.logger.Debug("closed connection, waiting for ready")
 	<-v.conn.Ready
 	if v.conn.MountError != nil {
 		return v.conn.MountError
@@ -91,6 +96,6 @@ func (v *VaultFS) Unmount() error {
 
 // Root returns the struct that does the actual work
 func (v *VaultFS) Root() (fs.Node, error) {
-	logrus.Debug("returning root")
+	v.logger.Debug("returning root")
 	return NewRoot(v.root, v.Logical()), nil
 }

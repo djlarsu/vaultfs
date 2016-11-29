@@ -20,10 +20,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/asteris-llc/vaultfs/fs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/hashicorp/vault/api"
 )
 
 // mountCmd represents the mount command
@@ -36,19 +37,23 @@ var mountCmd = &cobra.Command{
 		}
 
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
-			logrus.WithError(err).Fatal("could not bind flags")
+			log.WithError(err).Fatal("could not bind flags")
 		}
 
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		config := fs.NewConfig(viper.GetString("address"), viper.GetBool("insecure"))
+		// Read vault config from environment
+		vaultConfig := api.DefaultConfig()
+		if err := vaultConfig.ReadEnvironment() ; err != nil {
+			log.Fatalln("Error reading vault environment keys:", err)
+		}
 
-		logrus.WithField("address", viper.GetString("address")).Info("creating FUSE client for Vault")
+		log.Info("Creating FUSE client for Vault server")
 
-		fs, err := fs.New(config, args[0], viper.GetString("token"), viper.GetString("root"))
+		fs, err := fs.New(vaultConfig, args[0], viper.GetString("root"), viper.GetString("token"))
 		if err != nil {
-			logrus.WithError(err).Fatal("error creatinging fs")
+			log.WithError(err).Fatal("error creatinging fs")
 		}
 
 		// handle interrupt
@@ -57,25 +62,21 @@ var mountCmd = &cobra.Command{
 			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 
 			<-c
-			logrus.Info("stopping")
+			log.Info("stopping")
 			err := fs.Unmount()
 			if err != nil {
-				logrus.WithError(err).Fatal("could not unmount cleanly")
+				log.WithError(err).Fatal("could not unmount cleanly")
 			}
 		}()
 
 		err = fs.Mount()
 		if err != nil {
-			logrus.WithError(err).Fatal("could not continue")
+			log.WithError(err).Fatal("could not continue")
 		}
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(mountCmd)
-
-	mountCmd.Flags().StringP("root", "r", "secret", "root path for reads")
-	mountCmd.Flags().StringP("address", "a", "https://localhost:8200", "vault address")
-	mountCmd.Flags().BoolP("insecure", "i", false, "skip SSL certificate verification")
-	mountCmd.Flags().StringP("token", "t", "", "vault token")
+	mountCmd.Flags().StringP("root", "r", "secret", "root path for mountpoint")
 }

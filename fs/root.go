@@ -78,7 +78,7 @@ func (r *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	// Literal secret
 	if secret != nil {
 		logrus.Debugln("Lookup succeeded for file-like secret.")
-		return &Secret{
+		return Secret{
 			secret,
 			r.logic,
 			crc64.Checksum([]byte(name), table),

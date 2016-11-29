@@ -17,12 +17,12 @@ package cmd
 import (
 	"errors"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/asteris-llc/vaultfs/docker"
-	"github.com/asteris-llc/vaultfs/fs"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/hashicorp/vault/api"
 )
 
 // dockerCmd represents the docker command
@@ -35,19 +35,24 @@ var dockerCmd = &cobra.Command{
 		}
 
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
-			logrus.WithError(err).Fatal("could not bind flags")
+			log.WithError(err).Fatal("could not bind flags")
 		}
 
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		vaultConfig := api.DefaultConfig()
+		if err := vaultConfig.ReadEnvironment() ; err != nil {
+			log.Fatalln("Error reading vault environment keys:", err)
+		}
+		
 		driver := docker.New(docker.Config{
 			Root:  args[0],
 			Token: viper.GetString("token"),
-			Vault: fs.NewConfig(viper.GetString("address"), viper.GetBool("insecure")),
+			Vault: vaultConfig,
 		})
 
-		logrus.WithFields(logrus.Fields{
+		log.WithFields(log.Fields{
 			"root":     args[0],
 			"address":  viper.GetString("address"),
 			"insecure": viper.GetBool("insecure"),
@@ -56,15 +61,15 @@ var dockerCmd = &cobra.Command{
 
 		defer func() {
 			for _, err := range driver.Stop() {
-				logrus.WithError(err).Error("error stopping driver")
+				log.WithError(err).Error("error stopping driver")
 			}
 		}()
 
 		handler := volume.NewHandler(driver)
-		logrus.WithField("socket", viper.GetString("socket")).Info("serving unix socket")
+		log.WithField("socket", viper.GetString("socket")).Info("serving unix socket")
 		err := handler.ServeUnix("root", viper.GetString("socket"))
 		if err != nil {
-			logrus.WithError(err).Fatal("failed serving")
+			log.WithError(err).Fatal("failed serving")
 		}
 	},
 }
