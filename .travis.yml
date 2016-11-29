@@ -1,17 +1,15 @@
 language: go
 go:
 - 1.7
-- tip
+go_import_path: github.com/asteris-llc/vaultfs
 script:
 - make
-matrix:
-  allow_failures:
-  - go: tip
 deploy:
   provider: releases
   api_key:
     secure: WIGVR4AxH8XYk0bnIS6DEsv2BH6jr3Iv/RY5Ahon1o+jSiE4R0+n1y1GPEfCiZ5hR0QsHhUs+DfQ4q4624rQ6H/V/ZgtFns+xnWbYRBdhudpwgjx04c13MjZfwluzH6jepJG6dfiNcv/bI5XjEYzX8dL6SGx6i3PryHsJcP9MadB99gX/mK3GAnWfq+ol8LJoNh3CizpX5oJ/SGvgjUxKmBr+4OzmWxgxBj1w7cHJmw4FRZ4G3rR6IPsihck1ZagLNi8SqA4PbXBHuWjvzreKU5aAaXLXgNZ7GIt7yBQg6DJzbEtgFDKqVAuX1dY4KaPnqlKIEM8ErQx5A1jYXSadYO1SWjlHm6u2pnMjMT0n8kZGWjD6iwCYaeoqnC6PKJkg7OGyZau6X/EXBwCiB7tfOAEdp9bOQcIBTqO+6pyOf9mlxXFJe5M6tCrUP7F0w1yysiYf1xsrQMFfvOBPznuux3GXZ9p2rmORb4J+bspGwlpOeNGXPDnVUcMBvG0iVFtCwpy5d04Zhu7BHygop4t6NePnItjjWfmr1I7qsotfIzozzumyCWuTEss12qX5GSDYDruAMW5pBM92wJhaMFN01LDVEFTGn28MEt93ik5nk+lcTJVk7oc1lVFGrohvIOF57gr4YTwT3LVI667yn2dO+HBWtEnCksQqX0tqRmAq3U=
   file: vaultfs
   on:
+    tags: true
     repo: wrouesnel/vaultfs
     branch: improvements
