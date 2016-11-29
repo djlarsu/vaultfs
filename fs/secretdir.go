@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// Statically ensure that *dir implement those interface
+// Statically ensure that *SecretDir implement those interface
 var _ = fs.HandleReadDirAller(&SecretDir{})
 var _ = fs.NodeStringLookuper(&SecretDir{})
 
@@ -54,7 +54,7 @@ func (s *SecretDir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return &Secret{
 			secret,
 			s.logic,
-			crc64.Checksum([]byte(name), table),
+			0, //crc64.Checksum([]byte(name), table),
 			lookupPath,
 		}, nil
 	}
@@ -72,7 +72,7 @@ func (s *SecretDir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return &SecretDir{
 			dirSecret,
 			s.logic,
-			crc64.Checksum([]byte(name), table),
+			0, //crc64.Checksum([]byte(name), table),
 			lookupPath,
 		}, nil
 	}
@@ -95,7 +95,7 @@ func (s *SecretDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		rawName := s.Data["keys"].([]interface{})[i].(string)
 		secretName := strings.TrimRight(rawName, "/")
 
-		inode := crc64.Checksum([]byte(secretName), table)
+		//inode := crc64.Checksum([]byte(secretName), table)
 
 		var nodeType fuse.DirentType
 		if strings.HasSuffix(rawName, "/") {
@@ -106,7 +106,7 @@ func (s *SecretDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 		d := fuse.Dirent{
 			Name:  secretName,
-			Inode: inode,
+			//Inode: inode,
 			Type:  nodeType,
 		}
 		dirs = append(dirs, d)

@@ -128,7 +128,7 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		rawName := secrets.Data["keys"].([]interface{})[i].(string)
 		secretName := strings.TrimRight(rawName, "/")
 
-		inode := crc64.Checksum([]byte(secretName), table)
+		//inode := crc64.Checksum([]byte(secretName), table)
 
 		var nodeType fuse.DirentType
 		if strings.HasSuffix(rawName, "/") {
@@ -139,7 +139,7 @@ func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 		d := fuse.Dirent{
 			Name:  secretName,
-			Inode: inode,
+			//Inode: inode,
 			Type:  nodeType,
 		}
 		dirs = append(dirs, d)
