@@ -22,9 +22,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/asteris-llc/vaultfs/fs"
+	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/hashicorp/vault/api"
 )
 
 // mountCmd represents the mount command
@@ -45,7 +45,7 @@ var mountCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// Read vault config from environment
 		vaultConfig := api.DefaultConfig()
-		if err := vaultConfig.ReadEnvironment() ; err != nil {
+		if err := vaultConfig.ReadEnvironment(); err != nil {
 			log.Fatalln("Error reading vault environment keys:", err)
 		}
 

@@ -2,12 +2,12 @@ TEST?=$(shell GO15VENDOREXPERIMENT=1 go list -f '{{.ImportPath}}/...' ./... | gr
 VET?=$(shell echo ${TEST} | sed "s/\.\.\.//g" | sed "s/\.\/ //g")
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 NAME=$(shell awk -F\" '/^const Name/ { print $$2 }' cmd/version.go)
-VERSION=$(shell awk -F\" '/^const Version/ { print $$2 }' cmd/version.go)
+VERSION=$(shell git describe --dirty)
 
 all: test vaultfs
 
 vaultfs:
-	GO15VENDOREXPERIMENT=1 go build .
+	GO15VENDOREXPERIMENT=1 go build -ldflags "-X cmd.Version=$(VERSION)" -o vaultfs .
 
 install: fmtcheck
 	GO15VENDOREXPERIMENT=1 go install .
@@ -32,7 +32,7 @@ cover:
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
-	@echo "==> Cheking that code complies with go vet requirements..."
+	@echo "==> Checking that code complies with go vet requirements..."
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
 		go get golang.org/x/tools/cmd/vet; \
 	fi

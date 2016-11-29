@@ -20,9 +20,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/asteris-llc/vaultfs/docker"
 	"github.com/docker/go-plugins-helpers/volume"
+	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/hashicorp/vault/api"
 )
 
 // dockerCmd represents the docker command
@@ -42,10 +42,10 @@ var dockerCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		vaultConfig := api.DefaultConfig()
-		if err := vaultConfig.ReadEnvironment() ; err != nil {
+		if err := vaultConfig.ReadEnvironment(); err != nil {
 			log.Fatalln("Error reading vault environment keys:", err)
 		}
-		
+
 		driver := docker.New(docker.Config{
 			Root:  args[0],
 			Token: viper.GetString("token"),

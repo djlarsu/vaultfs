@@ -29,7 +29,7 @@ type VaultFS struct {
 	root       string
 	conn       *fuse.Conn
 	mountpoint string
-	logger	   *logrus.Entry	// Context aware logger
+	logger     *logrus.Entry // Context aware logger
 }
 
 // New returns a new VaultFS
@@ -47,7 +47,7 @@ func New(config *api.Config, mountpoint string, root string, token string) (*Vau
 		Client:     client,
 		root:       root,
 		mountpoint: mountpoint,
-		logger: logrus.WithField("address", config.Address),
+		logger:     logrus.WithField("address", config.Address),
 	}, nil
 }
 

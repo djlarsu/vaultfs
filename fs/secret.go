@@ -15,13 +15,16 @@
 package fs
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"bazil.org/fuse"
-	"github.com/Sirupsen/logrus"
+	"bazil.org/fuse/fs"
+	log "github.com/Sirupsen/logrus"
+	"github.com/go-errors/errors"
 	"github.com/hashicorp/vault/api"
 	"golang.org/x/net/context"
-	"bazil.org/fuse/fs"
 )
 
 // Statically ensure that *Secret implements the given interface
@@ -30,108 +33,151 @@ var _ = fs.NodeStringLookuper(&SecretDir{})
 
 // Static map of directory items found under a secret
 var secretDirEntrys = map[string]fuse.Dirent{
-	"lease_id" : fuse.Dirent{
-		Name: "lease_id",
-		//Inode: 1, //crc64.Checksum([]byte(s.lookupPath), table)
-		Type: fuse.DT_File,
+	"lease_id": fuse.Dirent{
+		Name:  "lease_id",
+		Inode: 0,
+		Type:  fuse.DT_File,
 	},
-
 	// LeaseDuration
-	"lease_duration" : fuse.Dirent{
-		Name: "lease_duration",
-		//Inode: 1, //crc64.Checksum([]byte(s.lookupPath), table)
-		Type: fuse.DT_File,
+	"lease_duration": fuse.Dirent{
+		Name:  "lease_duration",
+		Inode: 0,
+		Type:  fuse.DT_File,
 	},
-
 	// "Renewable" file is always empty
-	"renewable" : fuse.Dirent{
-		Name: "renewable",
-		//Inode: 1, //crc64.Checksum([]byte(s.lookupPath), table)
-		Type: fuse.DT_File,
+	"renewable": fuse.Dirent{
+		Name:  "renewable",
+		Inode: 0,
+		Type:  fuse.DT_File,
 	},
-
 	// Data is a directory
-	"data" : fuse.Dirent{
-		Name: "data",
-		//Inode: 1, //crc64.Checksum([]byte(s.lookupPath), table)
-		Type: fuse.DT_Dir,
+	"data": fuse.Dirent{
+		Name:  "data",
+		Inode: 0,
+		Type:  fuse.DT_Dir,
 	},
-
 	// Warnings is a file.
-	"warnings" : fuse.Dirent{
-		Name: "warnings",
-		//Inode: 1, //crc64.Checksum([]byte(s.lookupPath), table)
-		Type: fuse.DT_File,
+	"warnings": fuse.Dirent{
+		Name:  "warnings",
+		Inode: 0,
+		Type:  fuse.DT_File,
 	},
-
 	// Auth is a directory
-	"auth" : fuse.Dirent{
-		Name: "auth",
-		//Inode: 1, //crc64.Checksum([]byte(s.lookupPath), table)
-		Type: fuse.DT_Dir,
+	"auth": fuse.Dirent{
+		Name:  "auth",
+		Inode: 0,
+		Type:  fuse.DT_Dir,
 	},
-
 	// WrapInfo is a directory
-	"wrap_info" : fuse.Dirent{
-		Name: "wrap_info",
-		//Inode: 1, //crc64.Checksum([]byte(s.lookupPath), table)
-		Type: fuse.DT_Dir,
+	"wrap_info": fuse.Dirent{
+		Name:  "wrap_info",
+		Inode: 0,
+		Type:  fuse.DT_Dir,
 	},
 }
 
-// Secret's represent secrets which directly contain data (cannot be treated as directories in the vault backend).
-// They are still treated as directories in FUSE because we want to expose data/ as files.
+// Secret represents secrets which directly contain data (cannot be treated as
+// directories in the vault backend). They are still treated as directories in
+// FUSE because we want to expose data/ as files.
 type Secret struct {
 	*api.Secret
-	logic *api.Logical
-	inode uint64
+	logic      *api.Logical
 	lookupPath string
 }
 
-func (s Secret) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
-	return nil
+// NewSecret creates a node which represents a directory and provides access to
+// the subkeys of a secret.
+func NewSecret(logic *api.Logical, backend *api.Secret, lookupPath string) (*Secret, error) {
+	if lookupPath == "" {
+		return nil, errors.Errorf("secret root must have non-zero length path")
+	}
+	if logic == nil {
+		return nil, errors.Errorf("nil logic connection not allowed")
+	}
+	if backend == nil {
+		return nil, errors.Errorf("nil backend not allowed")
+	}
+
+	return &Secret{
+		Secret:     backend,
+		logic:      logic,
+		lookupPath: lookupPath,
+	}, nil
 }
 
 // Attr returns attributes about this Secret
 func (s Secret) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = s.inode
-	a.Mode = os.ModeDir | 0555
+	a.Mode = os.ModeDir | os.FileMode(0555)
+	a.Uid = 0
+	a.Gid = 0
+
 	return nil
 }
 
-//func (s Secret) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-//	data, err := s.ReadAll(ctx)
-//	if err == io.ErrUnexpectedEOF || err == io.EOF {
-//		err = nil
-//	}
-//	resp.Data = data[:len(data)]
-//	return err
-//}
-
 // Lookup looks up a path
 func (s *Secret) Lookup(ctx context.Context, name string) (fs.Node, error) {
+	log := log.WithField("root", s.lookupPath).WithField("name", name)
+	log.Debugln("Handling Secret.Lookup")
 	// Lookup which node in the fixed list...
 	dir, found := secretDirEntrys[name]
 	if !found {
+		log.Debugln("Secret.Lookup not valid for Secret.")
 		return nil, fuse.ENOENT
 	}
 
 	// Return a value node if a file, else one of the specialized directories
-	if dir.Type == fuse.DT_File {
-		switch dir.Name {
-		case "lease_id":
-			return NewValue(s.LeaseID)
-		case "lease_duration" :
-			return NewValue(s.LeaseDuration)
-		case "renewable" :
-			return NewValue(s.Renewable)
-		case "data" :
-			break
-		case "warnings" :
-			return NewValue(s.Warnings)
-		case "auth" :
-		case "wrap_info" :
+	switch dir.Name {
+	case "lease_id":
+		return NewValue(s.LeaseID)
+	case "lease_duration":
+		return NewValue(fmt.Sprintf("%v", s.LeaseDuration))
+	case "renewable":
+		return NewValue(fmt.Sprintf("%v", s.Renewable))
+	case "warnings":
+		return NewValue(strings.Join(s.Warnings, "\n"))
+	case "data":
+		subdir := make(map[string]interface{})
+		for filename, data := range s.Data {
+			if value, ok := data.(string); !ok {
+				log.WithField("name", name).
+					WithField("childname", filename).
+					Errorf("Not a string in backend - ignoring: %T", data)
+			} else {
+				subdir[filename] = value
+			}
 		}
+		return NewStaticDir(subdir)
+	case "auth":
+		if s.Auth == nil {
+			return nil, fuse.ENOENT
+		}
+
+		authDir := make(map[string]interface{})
+		authDir["client_token"] = s.Auth.ClientToken
+		authDir["accessor"] = s.Auth.Accessor
+		authDir["policies"] = strings.Join(s.Auth.Policies, "\n")
+
+		metadata := make(map[string]interface{})
+		for k, v := range s.Auth.Metadata {
+			metadata[k] = v
+		}
+		authDir["metadata"] = metadata
+		authDir["lease_duration"] = fmt.Sprintf("%v", s.Auth.LeaseDuration)
+		authDir["renewable"] = fmt.Sprintf("%v", s.Auth.Renewable)
+
+		return NewStaticDir(authDir)
+	case "wrap_info":
+		if s.WrapInfo == nil {
+			return nil, fuse.ENOENT
+		}
+
+		wrapInfo := make(map[string]interface{})
+		wrapInfo["token"] = s.WrapInfo.Token
+		wrapInfo["ttl"] = fmt.Sprintf("%v", s.WrapInfo.TTL)
+		wrapInfo["creation_time"] = s.WrapInfo.CreationTime.String()
+		wrapInfo["wrapped_accessor"] = s.WrapInfo.WrappedAccessor
+
+		return NewStaticDir(wrapInfo)
 	}
 
 	return nil, fuse.ENOENT
@@ -139,19 +185,12 @@ func (s *Secret) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 // ReadDirAll returns a list of the subkey-files available for a secret
 func (s *Secret) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	logrus.WithField("path", s.lookupPath).Debugln("handling Root.ReadDirAll call")
-
-	if s.Data["keys"] == nil {
-		return []fuse.Dirent{}, nil
-	}
-
+	log.WithField("path", s.lookupPath).Debugln("handling Secret.ReadDirAll call")
 	dirs := []fuse.Dirent{}
 
 	for _, v := range secretDirEntrys {
-		//v.Inode = crc64.Checksum([]byte(s.lookupPath), table)
 		dirs = append(dirs, v)
 	}
 
-	logrus.Debugln("ReadDirAll succeeded.", dirs)
 	return dirs, nil
 }

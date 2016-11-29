@@ -47,7 +47,7 @@ func New(config Config) Driver {
 	}
 }
 
-// Create handles volume creation calls
+// Capabilities tells docker we provide local volume support only.
 func (d Driver) Capabilities(r volume.Request) volume.Response {
 	return volume.Response{
 		Capabilities: volume.Capability{

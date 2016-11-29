@@ -1,15 +1,16 @@
 package fs
 
 import (
+	"os"
+	"path"
+	"strings"
+
 	"bazil.org/fuse"
-	"github.com/Sirupsen/logrus"
+	"bazil.org/fuse/fs"
+	log "github.com/Sirupsen/logrus"
+	"github.com/go-errors/errors"
 	"github.com/hashicorp/vault/api"
 	"golang.org/x/net/context"
-	"os"
-	"bazil.org/fuse/fs"
-	"path"
-	"hash/crc64"
-	"strings"
 )
 
 // Statically ensure that *SecretDir implement those interface
@@ -20,15 +21,32 @@ var _ = fs.NodeStringLookuper(&SecretDir{})
 // This is the type we return if the Secret is a secret that we only were able to get via a list - i.e. is directory-like.
 type SecretDir struct {
 	*api.Secret
-	logic *api.Logical
-	inode uint64
-	lookupPath string
+	logic      *api.Logical
+	lookupPath string // Vault Path used to find this key.
+}
+
+// NewSecretDir creates a SecretDir node linked to the given secret and vault API.
+func NewSecretDir(logic *api.Logical, backend *api.Secret, lookupPath string) (*SecretDir, error) {
+	if lookupPath == "" {
+		return nil, errors.Errorf("secret root must have non-zero length path")
+	}
+	if logic == nil {
+		return nil, errors.Errorf("nil logic connection not allowed")
+	}
+	if backend == nil {
+		return nil, errors.Errorf("nil backend not allowed")
+	}
+
+	return &SecretDir{
+		Secret:     backend,
+		logic:      logic,
+		lookupPath: lookupPath,
+	}, nil
 }
 
 // Attr returns attributes about this Secret
 func (s SecretDir) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = s.inode
-	a.Mode = os.ModeDir | 0555
+	a.Mode = os.ModeDir | os.FileMode(0555)
 	a.Uid = 0
 	a.Gid = 0
 
@@ -37,54 +55,43 @@ func (s SecretDir) Attr(ctx context.Context, a *fuse.Attr) error {
 
 // Lookup looks up a path
 func (s *SecretDir) Lookup(ctx context.Context, name string) (fs.Node, error) {
-	logrus.WithField("name", name).Debug("handling Root.Lookup call")
+	log := log.WithField("root", s.lookupPath).WithField("name", name)
+	log.Debugln("Handling SecretDir.Lookup")
 
 	lookupPath := path.Join(s.lookupPath, name)
 
 	// TODO: handle context cancellation
 	secret, err := s.logic.Read(lookupPath)
 	if err != nil {
-		logrus.WithError(err).WithFields(logrus.Fields{"root": s.lookupPath, "name": name}).Error("error reading key")
+		log.WithError(err).WithField("root", s.lookupPath).Error("Error reading key")
 		return nil, fuse.EIO
 	}
 
 	// Literal secret
 	if secret != nil {
-		logrus.Debugln("Lookup succeeded for file-like secret.")
-		return &Secret{
-			secret,
-			s.logic,
-			0, //crc64.Checksum([]byte(name), table),
-			lookupPath,
-		}, nil
+		log.Debugln("Lookup succeeded for file-like secret.")
+		return NewSecret(s.logic, secret, lookupPath)
 	}
-
 
 	// Not a literal secret. Try listing to see if it's a directory.
 	dirSecret, err := s.logic.List(lookupPath)
 	if err != nil {
-		logrus.WithError(err).WithFields(logrus.Fields{"root": s.lookupPath, "name": name}).Error("error listing key")
+		log.WithError(err).WithField("root", s.lookupPath).Error("Error listing key")
 		return nil, fuse.EIO
 	}
 
 	if secret != nil {
-		logrus.Debugln("Lookup succeeded for directory-like secret.")
-		return &SecretDir{
-			dirSecret,
-			s.logic,
-			0, //crc64.Checksum([]byte(name), table),
-			lookupPath,
-		}, nil
+		log.Debugln("Lookup succeeded for directory-like secret.")
+		return NewSecretDir(s.logic, dirSecret, lookupPath)
 	}
 
-	logrus.Debugln("lookup failed.")
+	log.Debugln("Lookup failed.")
 	return nil, fuse.ENOENT
 }
 
 // ReadDirAll returns a list of secrets in this directory
 func (s *SecretDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	logrus.WithField("path", s.lookupPath).Debugln("handling Root.ReadDirAll call")
-
+	log.WithField("path", s.lookupPath).Debugln("handling SecretDir.ReadDirAll call")
 	if s.Data["keys"] == nil {
 		return []fuse.Dirent{}, nil
 	}
@@ -95,23 +102,12 @@ func (s *SecretDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		rawName := s.Data["keys"].([]interface{})[i].(string)
 		secretName := strings.TrimRight(rawName, "/")
 
-		//inode := crc64.Checksum([]byte(secretName), table)
-
-		var nodeType fuse.DirentType
-		if strings.HasSuffix(rawName, "/") {
-			nodeType = fuse.DT_Dir
-		} else {
-			nodeType = fuse.DT_File
-		}
-
 		d := fuse.Dirent{
 			Name:  secretName,
-			//Inode: inode,
-			Type:  nodeType,
+			Inode: 0,
+			Type:  fuse.DT_Dir,
 		}
 		dirs = append(dirs, d)
 	}
-
-	logrus.Debugln("ReadDirAll succeeded.", dirs)
 	return dirs, nil
 }
