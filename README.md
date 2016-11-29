@@ -1,6 +1,8 @@
 # VaultFS
 
-[![Build Status](https://travis-ci.org/wrouesnel/vaultfs.svg?branch=master)](https://travis-ci.org/asteris-llc/vaultfs)
+This is a fork of the original VaultFS project.
+
+[![Build Status](https://travis-ci.org/wrouesnel/vaultfs.svg?branch=master)](https://travis-ci.org/wrouesnel/vaultfs)
 
 VaultFS mounts arbitrary [Vault](https://vaultproject.io/) prefixes in a FUSE
 filesystem. It also provides a Docker volume plugin to the do the same for your
@@ -18,12 +20,9 @@ containers.
 
 # Installation
 
-This project is in early development and has not reached 1.0. You will have to
-build the binary yourself:
-
 ```shell
-go get github.com/asteris-llc/vaultfs
-env GOOS=linux go build github.com/asteris-llc/vaultfs
+go get github.com/wrouesnel/vaultfs
+env GOOS=linux go build github.com/wrouesnel/vaultfs
 ```
 
 # Usage
@@ -38,10 +37,15 @@ Usage:
   vaultfs mount {mountpoint} [flags]
 
 Flags:
-  -a, --address="https://localhost:8200": vault address
-  -i, --insecure[=false]: skip SSL certificate verification
-  -r, --root="secret": root path for reads
-  -t, --token="": vault token
+  -r, --root string   root path for mountpoint (default "secret")
+
+Global Flags:
+      --config string            config file (default /etc/vaultfs)
+      --log-destination string   log destination (file:/your/output, stdout:, journald:, or syslog://tag@host:port#protocol) (default "stdout:")
+      --log-format string        log level (one of text or json) (default "text")
+      --log-level string         log level (one of fatal, error, warn, info, or debug) (default "info")
+  -t, --token string             The Vault Server token
+
 ```
 
 To mount secrets, first create a mountpoint (`mkdir test`), then use `vaultfs`
@@ -58,10 +62,16 @@ Usage:
   vaultfs docker {mountpoint} [flags]
 
 Flags:
-  -a, --address="https://localhost:8200": vault address
-  -i, --insecure[=false]: skip SSL certificate verification
-  -s, --socket="/run/docker/plugins/vault.sock": socket address to communicate with docker
-  -t, --token="": vault token
+  -a, --address string   vault address (default "https://localhost:8200")
+  -i, --insecure         skip SSL certificate verification
+  -s, --socket string    socket address to communicate with docker (default "/run/docker/plugins/vault.sock")
+  -t, --token string     vault token
+
+Global Flags:
+      --config string            config file (default /etc/vaultfs)
+      --log-destination string   log destination (file:/your/output, stdout:, journald:, or syslog://tag@host:port#protocol) (default "stdout:")
+      --log-format string        log level (one of text or json) (default "text")
+      --log-level string         log level (one of fatal, error, warn, info, or debug) (default "info")
 ```
 
 To start the Docker plugin, create a directory to hold mountpoints (`mkdir
