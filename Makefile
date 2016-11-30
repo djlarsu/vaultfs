@@ -8,7 +8,7 @@ GO_SRC=$(shell find -type f -name '*.go')
 all: test vaultfs
 
 vaultfs: $(GO_SRC)
-	GO15VENDOREXPERIMENT=1 go build -ldflags "-X cmd.Version=$(VERSION)" -o vaultfs .
+	GO15VENDOREXPERIMENT=1 go build -ldflags "-X github.com/asteris-llc/vaultfs/cmd.Version=$(VERSION)" -o vaultfs .
 
 install: fmtcheck
 	GO15VENDOREXPERIMENT=1 go install .

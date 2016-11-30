@@ -17,7 +17,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -34,8 +34,11 @@ var RootCmd = &cobra.Command{
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	// Output the version initially to logging.
+	log.Infoln("Name:", Name, "Version:", Version)
+
 	if err := RootCmd.Execute(); err != nil {
-		logrus.WithError(err).Error("error executing command")
+		log.WithError(err).Error("error executing command")
 		os.Exit(-1)
 	}
 }
@@ -54,7 +57,7 @@ func init() {
 	RootCmd.PersistentFlags().StringP("token", "t", "", "The Vault Server token (optional if using certificate auth)")
 
 	if err := viper.BindPFlags(RootCmd.PersistentFlags()); err != nil {
-		logrus.WithError(err).Fatal("could not bind flags")
+		log.WithError(err).Fatal("could not bind flags")
 	}
 }
 
@@ -71,6 +74,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		logrus.WithField("config", viper.ConfigFileUsed()).Info("using config file from disk")
+		log.WithField("config", viper.ConfigFileUsed()).Info("using config file from disk")
 	}
 }

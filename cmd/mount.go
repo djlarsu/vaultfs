@@ -51,7 +51,8 @@ var mountCmd = &cobra.Command{
 
 		log.Info("Creating FUSE client for Vault server")
 
-		fs, err := fs.New(vaultConfig, args[0], viper.GetString("root"), viper.GetString("token"), viper.GetString("auth-method"))
+		fs, err := fs.New(vaultConfig, args[0], viper.GetString("root"),
+			viper.GetString("token"), viper.GetString("auth-method"))
 		if err != nil {
 			log.WithError(err).Fatal("error creatinging fs")
 		}

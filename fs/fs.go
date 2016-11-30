@@ -109,5 +109,5 @@ func (v *VaultFS) Unmount() error {
 // Root returns the struct that does the actual work
 func (v *VaultFS) Root() (fs.Node, error) {
 	v.logger.Debug("returning root")
-	return NewRoot(v.root, v.Logical()), nil
+	return NewSecretDir(v.Logical(), v.root)
 }
