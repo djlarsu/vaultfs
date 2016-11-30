@@ -29,8 +29,8 @@ type Server struct {
 }
 
 // NewServer returns a new server with initial state
-func NewServer(config *api.Config, mountpoint, token, root string) (*Server, error) {
-	fs, err := fs.New(config, mountpoint, root, token)
+func NewServer(config *api.Config, mountpoint, token, authMethod, root string) (*Server, error) {
+	fs, err := fs.New(config, mountpoint, root, token, authMethod)
 	if err != nil {
 		return nil, err
 	}

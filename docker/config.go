@@ -24,6 +24,7 @@ type Config struct {
 	Root string
 
 	// Token and config for Vault
-	Token string
-	Vault *api.Config
+	Token      string
+	AuthMethod string
+	Vault      *api.Config
 }

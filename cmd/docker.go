@@ -47,9 +47,10 @@ var dockerCmd = &cobra.Command{
 		}
 
 		driver := docker.New(docker.Config{
-			Root:  args[0],
-			Token: viper.GetString("token"),
-			Vault: vaultConfig,
+			Root:       args[0],
+			Token:      viper.GetString("token"),
+			AuthMethod: viper.GetString("auth-method"),
+			Vault:      vaultConfig,
 		})
 
 		log.WithFields(log.Fields{

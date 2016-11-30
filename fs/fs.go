@@ -19,6 +19,7 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
+	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/vault/api"
 )
@@ -33,15 +34,26 @@ type VaultFS struct {
 }
 
 // New returns a new VaultFS
-func New(config *api.Config, mountpoint string, root string, token string) (*VaultFS, error) {
+func New(config *api.Config, mountpoint string, root string, token string, authMethod string) (*VaultFS, error) {
 	client, err := api.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
-	// Only set token if specified - it is optional (i.e. client cert auth).
-	if token != "" {
-		client.SetToken(token)
+	// If no token is specified, then try authenticating with the specified auth-method
+	// (which defaults to cert, and will handle the most common use case).
+	if token == "" {
+		path := fmt.Sprintf("auth/%s/login", authMethod)
+		secret, err := client.Logical().Write(path, nil)
+		if err != nil {
+			return nil, err
+		}
+		if secret == nil {
+			return nil, errors.New("empty response from credential provider")
+		}
+		token = secret.Auth.ClientToken
 	}
+
+	client.SetToken(token)
 
 	return &VaultFS{
 		Client:     client,

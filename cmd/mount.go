@@ -51,7 +51,7 @@ var mountCmd = &cobra.Command{
 
 		log.Info("Creating FUSE client for Vault server")
 
-		fs, err := fs.New(vaultConfig, args[0], viper.GetString("root"), viper.GetString("token"))
+		fs, err := fs.New(vaultConfig, args[0], viper.GetString("root"), viper.GetString("token"), viper.GetString("auth-method"))
 		if err != nil {
 			log.WithError(err).Fatal("error creatinging fs")
 		}
@@ -78,5 +78,5 @@ var mountCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(mountCmd)
-	mountCmd.Flags().StringP("root", "r", "secret", "root path for mountpoint")
+	mountCmd.Flags().StringP("root", "r", "secret", "list of root paths to mount")
 }
