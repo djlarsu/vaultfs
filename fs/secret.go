@@ -149,7 +149,7 @@ func (s *Secret) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return NewStaticDir(subdir)
 	case "auth":
 		if s.Auth == nil {
-			return nil, fuse.ENOENT
+			return NewStaticDir(nil)
 		}
 
 		authDir := make(map[string]interface{})
@@ -168,7 +168,7 @@ func (s *Secret) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return NewStaticDir(authDir)
 	case "wrap_info":
 		if s.WrapInfo == nil {
-			return nil, fuse.ENOENT
+			return NewStaticDir(nil)
 		}
 
 		wrapInfo := make(map[string]interface{})

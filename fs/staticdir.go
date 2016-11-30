@@ -31,6 +31,11 @@ func NewStaticDir(values map[string]interface{}) (*StaticDir, error) {
 		children: make(map[string]fs.Node),
 	}
 
+	// If nil map, return an empty directory.
+	if values == nil {
+		return newDir, nil
+	}
+
 	for filename, content := range values {
 		// Check no name collisions
 		_, found := newDir.children[filename]
