@@ -3,10 +3,11 @@ VET?=$(shell echo ${TEST} | sed "s/\.\.\.//g" | sed "s/\.\/ //g")
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 NAME=$(shell awk -F\" '/^const Name/ { print $$2 }' cmd/version.go)
 VERSION=$(shell git describe --dirty)
+GO_SRC=$(shell find -type f -name '*.go')
 
 all: test vaultfs
 
-vaultfs:
+vaultfs: $(GO_SRC)
 	GO15VENDOREXPERIMENT=1 go build -ldflags "-X cmd.Version=$(VERSION)" -o vaultfs .
 
 install: fmtcheck
