@@ -36,16 +36,16 @@ var _ = fs.NodeStringLookuper(&Root{})
 
 // Root implements both Node and Handle
 type Root struct {
-	root  string
-	logic *api.Logical
+	lookupPath string
+	logic      *api.Logical
 }
 
 // NewRoot creates a new root and returns it
 func NewRoot(root string, logic *api.Logical) *Root {
 	log.WithField("root", root).Infoln("Creating new vault root.")
 	return &Root{
-		root:  root,
-		logic: logic,
+		lookupPath: root,
+		logic:      logic,
 	}
 }
 
@@ -61,15 +61,22 @@ func (Root) Attr(ctx context.Context, a *fuse.Attr) error {
 // Lookup looks up a path
 func (r *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	log := log.WithField("name", name)
+	log.Debugln("Handling Root.Lookup")
 
-	// Get the actual vault lookup path, which should be absolute.
-	lookupPath := path.Join(r.root, name)
+	lookupPath := path.Join(r.lookupPath, name)
 
 	// TODO: handle context cancellation
 	secret, err := r.logic.Read(lookupPath)
 	if err != nil {
-		log.WithError(err).Error("Error reading key.")
-		return nil, fuse.EIO
+		// Was this just permission denied (in which case fall through to directory listing)
+		// Note: the error handling in the vault client library *sucks*
+		if strings.Contains(err.Error(), "Code: 403") {
+			log.WithError(err).WithField("root", r.lookupPath).Error("Permission denied as literal secret")
+		} else {
+			// Connection level errors won't recover further down.
+			log.WithError(err).WithField("root", r.lookupPath).Error("Error reading key")
+			return nil, fuse.EIO
+		}
 	}
 
 	// Literal secret
@@ -78,16 +85,22 @@ func (r *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return NewSecret(r.logic, secret, lookupPath)
 	}
 
-	// Not a literal secret. Try listing to see if it's a directory.
+	// Not a literal secret (or permission denied). Try listing to see if it's a directory.
 	dirSecret, err := r.logic.List(lookupPath)
 	if err != nil {
-		log.WithError(err).Error("Error listing key.")
-		return nil, fuse.EIO
+		if strings.Contains(err.Error(), "Code: 403") {
+			log.WithError(err).WithField("root", r.lookupPath).Info("Permission denied - returning empty directory to allow traversal.")
+			return NewSecretDir(r.logic, dirSecret, lookupPath, false)
+		} else {
+			// Connection level errors won't recover further down.
+			log.WithError(err).WithField("root", r.lookupPath).Error("Error reading key")
+			return nil, fuse.EIO
+		}
 	}
 
 	if dirSecret != nil {
 		log.Debugln("Lookup succeeded for directory-like secret.")
-		return NewSecretDir(r.logic, dirSecret, lookupPath)
+		return NewSecretDir(r.logic, dirSecret, lookupPath, true)
 	}
 
 	log.Debugln("Lookup failed.")
@@ -96,22 +109,48 @@ func (r *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 // ReadDirAll returns a list of secrets
 func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	log.WithField("path", r.root).Debugln("handling Root.ReadDirAll call")
+	log.WithField("path", r.lookupPath).Debugln("handling Root.ReadDirAll call")
 
-	secrets, err := r.logic.List(path.Join(r.root))
+	lookupPath := path.Join(r.lookupPath)
+	s, err := r.logic.List(lookupPath)
 	if err != nil {
-		log.WithError(err).WithFields(log.Fields{"root": r.root}).Errorln("Error listing secrets")
-		return nil, fuse.EIO
+		if strings.Contains(err.Error(), "Code: 403") {
+			log.WithError(err).WithField("root", r.lookupPath).Info("Permission denied - returning empty directory to allow traversal.")
+			return []fuse.Dirent{}, nil
+		} else {
+			// Connection level errors won't recover further down.
+			log.WithError(err).WithField("root", r.lookupPath).Error("Error reading key")
+			return nil, fuse.EIO
+		}
 	}
 
-	if secrets.Data["keys"] == nil {
+	if s.Data == nil {
+		return []fuse.Dirent{}, nil
+	}
+
+	keys, found := s.Data["keys"]
+	if !found {
+		log.Error("Directory-like secret had no \"keys\" field.")
+		return []fuse.Dirent{}, nil
+	}
+
+	if keys == nil {
+		return []fuse.Dirent{}, nil
+	}
+
+	keylist, ok := keys.([]interface{})
+	if !ok {
+		log.Error("Directory-like secret keys field was not a list.")
 		return []fuse.Dirent{}, nil
 	}
 
 	dirs := []fuse.Dirent{}
-	for i := 0; i < len(secrets.Data["keys"].([]interface{})); i++ {
+	for _, value := range keylist {
 		// Ensure we don't have a trailing /
-		rawName := secrets.Data["keys"].([]interface{})[i].(string)
+		rawName, ok := value.(string)
+		if !ok {
+			log.Error("Value from backend for directory-like secret was not a string!")
+		}
 		secretName := strings.TrimRight(rawName, "/")
 
 		d := fuse.Dirent{
