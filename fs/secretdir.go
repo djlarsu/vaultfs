@@ -176,7 +176,7 @@ func (s *SecretDir) lookupSecret(ctx context.Context, secret *api.Secret, name s
 	// Lookup which node in the fixed list...
 	dir, found := secretDirEntrys[name]
 	if !found {
-		log.Debugln("Secret.Lookup not valid for Secret.")
+		log.Debugln("SecretDir.lookupSecret not valid for Secret.")
 		return nil, fuse.ENOENT
 	}
 
@@ -293,13 +293,12 @@ func (s *SecretDir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 			return nil, fuse.EIO
 		case SecretTypeNonExistent:
 			return nil, fuse.ENOENT
-		case SecretTypeInaccessible, SecretTypeDirectory:
+		// Important: note that for *child* secrets here, SecretTypeSecret is
+		// is treated exactly the same.
+		case SecretTypeInaccessible, SecretTypeDirectory, SecretTypeSecret:
 			// Inaccessible is just a directory we *assume* exists
 			// so is exactly like a directory.
 			return NewSecretDir(s.fs, childLookupPath)
-		case SecretTypeSecret:
-			// We are being a secret. Call out to secretLookup.
-			return s.lookupSecret(ctx, currentSecret, name)
 		default:
 			log.Error("BUG: unknown secret type found.")
 			return nil, fuse.EIO
