@@ -12,7 +12,9 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	log "github.com/Sirupsen/logrus"
+	"github.com/asteris-llc/vaultfs/vaultapi"
 	"github.com/go-errors/errors"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/api"
 	"golang.org/x/net/context"
 )
@@ -88,30 +90,31 @@ const (
 )
 
 // SecretDir implements Node and Handle
-// This is the type we return if the Secret is a secret that we only were able to get via a list - i.e. is directory-like.
+// This type is used for accessing all content in a VaultFS as everything maps to directory-like structures. Various
+// lookups produce either a child SecretDir or a a StaticDir tree.
 type SecretDir struct {
-	logic      *api.Logical
-	lookupPath string // Vault Path used to find this key.
+	fs         *VaultFS // root filesystem this node is associated with
+	lookupPath string   // Vault Path used to find this key.
 }
 
 // NewSecretDir creates a SecretDir node linked to the given secret and vault API.
-func NewSecretDir(logic *api.Logical, lookupPath string) (*SecretDir, error) {
+func NewSecretDir(fs *VaultFS, lookupPath string) (*SecretDir, error) {
 	log := log.WithField("root", lookupPath)
 	log.Debug("NewSecret")
 
 	if lookupPath == "" {
-		err := errors.Errorf("secret root must have non-zero length path")
+		err := errors.New("secret root must have non-zero length path")
 		log.Error(err)
 		return nil, err
 	}
-	if logic == nil {
-		err := errors.Errorf("nil logic connection not allowed")
+	if fs == nil {
+		err := errors.New("nil vaultfs connection not allowed")
 		log.Error(err)
 		return nil, err
 	}
 
 	return &SecretDir{
-		logic:      logic,
+		fs:         fs,
 		lookupPath: lookupPath,
 	}, nil
 }
@@ -127,11 +130,11 @@ func (s *SecretDir) lookup(ctx context.Context, lookupPath string) (SecretType, 
 	log.Debug("Handling SecretDir.lookup")
 
 	// TODO: handle context cancellation
-	secret, err := s.logic.Read(lookupPath)
+	secret, err := s.fs.logic().Read(lookupPath)
 	if err != nil {
 		// Was this just permission denied (in which case fall through to directory listing)
 		// Note: the error handling in the vault client library *sucks*
-		if !strings.Contains(err.Error(), "Code: 403") {
+		if !errwrap.ContainsType(err, new(vaultapi.ErrPermissionDenied)) {
 			// Connection level errors won't recover further down.
 			s.log().WithError(err).Error("Backend inaccessible")
 			return SecretTypeBackendError, nil
@@ -147,9 +150,9 @@ func (s *SecretDir) lookup(ctx context.Context, lookupPath string) (SecretType, 
 	}
 
 	// Not a secret (or permission denied). Try listing to see if directory-like.
-	dirSecret, err := s.logic.List(lookupPath)
+	dirSecret, err := s.fs.logic().List(lookupPath)
 	if err != nil {
-		if !strings.Contains(err.Error(), "Code: 403") {
+		if !errwrap.ContainsType(err, new(vaultapi.ErrPermissionDenied)) {
 			// Connection level errors won't recover further down.
 			log.WithError(err).Error("Error reading key")
 			return SecretTypeBackendError, nil
@@ -281,7 +284,7 @@ func (s *SecretDir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	case SecretTypeInaccessible:
 		// Inaccessible is just a directory we *assume* exists.
-		return NewSecretDir(s.logic, childLookupPath)
+		return NewSecretDir(s.fs, childLookupPath)
 	case SecretTypeDirectory:
 		// Directory type - so do another lookup.
 		childSecretType, _ := s.lookup(ctx, childLookupPath)
@@ -293,7 +296,7 @@ func (s *SecretDir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		case SecretTypeInaccessible, SecretTypeDirectory:
 			// Inaccessible is just a directory we *assume* exists
 			// so is exactly like a directory.
-			return NewSecretDir(s.logic, childLookupPath)
+			return NewSecretDir(s.fs, childLookupPath)
 		case SecretTypeSecret:
 			// We are being a secret. Call out to secretLookup.
 			return s.lookupSecret(ctx, currentSecret, name)

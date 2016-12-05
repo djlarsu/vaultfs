@@ -15,18 +15,22 @@
 package fs
 
 import (
-	"errors"
-
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"fmt"
 	"github.com/Sirupsen/logrus"
+	"github.com/go-errors/errors"
 	"github.com/hashicorp/vault/api"
+
+	"github.com/asteris-llc/vaultfs/vaultapi"
 )
 
-// VaultFS is a vault filesystem
+// VaultFS is a vault filesystem.
+// It also wraps the accessor functions needed by the filesystem nodes to
+// manage access to backend keys in vault (i.e. error handling, failover and
+// re-auth attempts.
 type VaultFS struct {
-	*api.Client
+	logical    vaultapi.Logical
 	root       string
 	conn       *fuse.Conn
 	mountpoint string
@@ -56,11 +60,24 @@ func New(config *api.Config, mountpoint string, root string, token string, authM
 	client.SetToken(token)
 
 	return &VaultFS{
-		Client:     client,
+		logical:    vaultapi.NewVaultLogicalBackend(client, token, authMethod),
 		root:       root,
 		mountpoint: mountpoint,
 		logger:     logrus.WithField("address", config.Address),
 	}, nil
+}
+
+func (v *VaultFS) log() *logrus.Entry {
+	return logrus.WithFields(logrus.Fields{
+		"vault_root": v.root,
+		"mountpoint": v.mountpoint,
+	})
+}
+
+// logic provides wrapped access to the Vault api.Logical backend.
+// It manages automatically re-authing sessions.
+func (v *VaultFS) logic() vaultapi.Logical {
+	return v.logical
 }
 
 // Mount the FS at the given mountpoint
@@ -72,7 +89,7 @@ func (v *VaultFS) Mount() error {
 		fuse.VolumeName("vault"),
 	)
 
-	logrus.Debug("created conn")
+	v.log().Debug("created conn")
 	if err != nil {
 		return err
 	}
@@ -109,5 +126,5 @@ func (v *VaultFS) Unmount() error {
 // Root returns the struct that does the actual work
 func (v *VaultFS) Root() (fs.Node, error) {
 	v.logger.Debug("returning root")
-	return NewSecretDir(v.Logical(), v.root)
+	return NewSecretDir(v, v.root)
 }
