@@ -1,5 +1,7 @@
 // SecretDir is the node type for directory-like secrets. Directory like secrets
 // returns "keys" in their data, and respond to the LIST request to Vault.
+// In a practical sense, this data structure is only valid for the generic
+// secret backend of vault - other backends are too different to generalize.
 
 package fs
 
@@ -12,6 +14,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	log "github.com/Sirupsen/logrus"
+	"github.com/asteris-llc/vaultfs/logutil"
 	"github.com/asteris-llc/vaultfs/vaultapi"
 	"github.com/go-errors/errors"
 	"github.com/hashicorp/errwrap"
@@ -119,8 +122,8 @@ func NewSecretDir(fs *VaultFS, lookupPath string) (*SecretDir, error) {
 	}, nil
 }
 
-func (s *SecretDir) log() *log.Entry {
-	return log.WithField("root", s.lookupPath)
+func (s *SecretDir) log() *logutil.Entry {
+	return logutil.NewEntry(log.WithField("root", s.lookupPath))
 }
 
 // Does a lookup for the given lookup path, determines the type of key it
@@ -136,12 +139,12 @@ func (s *SecretDir) lookup(ctx context.Context, lookupPath string) (SecretType, 
 		// Note: the error handling in the vault client library *sucks*
 		if errwrap.ContainsType(err, new(vaultapi.ErrVaultInaccessible)) {
 			// Connection level errors won't recover further down.
-			s.log().WithError(err).Error("Backend inaccessible")
+			s.log().WithErrors(err).Error("Backend inaccessible")
 			return SecretTypeBackendError, nil
 		}
 
 		// Permission denied - continue to try listing (which might be allowed).
-		log.WithError(err).Debug("Permission denied (secret)")
+		log.WithErrors(err).Debug("Not a readable secret.")
 	}
 
 	// Literal secret was found (not found still requires us to try list below)
@@ -155,10 +158,10 @@ func (s *SecretDir) lookup(ctx context.Context, lookupPath string) (SecretType, 
 	if err != nil {
 		if errwrap.ContainsType(err, new(vaultapi.ErrVaultInaccessible)) {
 			// Connection level errors won't recover further down.
-			log.WithError(err).Error("Error reading key")
+			log.WithErrors(err).Error("Error reading key")
 			return SecretTypeBackendError, nil
 		}
-		log.WithError(err).Info("Permission denied (directory)")
+		log.WithErrors(err).Info("Not a listable secret.")
 		return SecretTypeInaccessible, nil
 	}
 
@@ -167,7 +170,7 @@ func (s *SecretDir) lookup(ctx context.Context, lookupPath string) (SecretType, 
 		return SecretTypeDirectory, dirSecret
 	}
 
-	// Key was not found
+	// Key was not found.
 	return SecretTypeNonExistent, nil
 }
 

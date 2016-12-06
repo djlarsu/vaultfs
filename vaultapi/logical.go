@@ -94,11 +94,27 @@ type ErrUnsupportedPath struct {
 
 // Error implements the error interface
 func (err ErrUnsupportedPath) Error() string {
-	return "missing client token"
+	return "unsupported path"
 }
 
 // WrappedErrors implmenets the hashicorp/errwrap interface
 func (err ErrUnsupportedPath) WrappedErrors() []error {
+	return []error{err.innerError}
+}
+
+// ErrUnsupportedOperation is returned when 405 * unsupported operation
+// is returned by Vault indicating an operation is not valid on that path.
+type ErrUnsupportedOperation struct {
+	innerError error
+}
+
+// Error implements the error interface
+func (err ErrUnsupportedOperation) Error() string {
+	return "unsupported operation"
+}
+
+// WrappedErrors implmenets the hashicorp/errwrap interface
+func (err ErrUnsupportedOperation) WrappedErrors() []error {
 	return []error{err.innerError}
 }
 
@@ -226,16 +242,22 @@ func (b *vaultBackend) Unwrap(wrappingToken string) (*api.Secret, error) {
 
 // narrowVaultError wraps a returned error with a specific error type based on its content
 func narrowVaultError(err error) error {
-	if strings.Contains(err.Error(), "* permission denied") {
+	errString := err.Error()
+
+	if strings.Contains(errString, "* permission denied") {
 		return ErrAuth{ErrPermissionDenied{err}}
 	}
 
-	if !strings.Contains(err.Error(), "* missing client token") {
+	if strings.Contains(errString, "* missing client token") {
 		return ErrAuth{ErrMissingClientToken{err}}
 	}
 
-	if !strings.Contains(err.Error(), "* unsupported path") {
+	if strings.Contains(errString, "* unsupported path") {
 		return ErrUnsupportedPath{err}
+	}
+
+	if strings.Contains(errString, "* unsupported operation") {
+		return ErrUnsupportedOperation{err}
 	}
 
 	return ErrVaultInaccessible{err}
