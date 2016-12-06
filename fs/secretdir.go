@@ -134,11 +134,12 @@ func (s *SecretDir) lookup(ctx context.Context, lookupPath string) (SecretType, 
 	if err != nil {
 		// Was this just permission denied (in which case fall through to directory listing)
 		// Note: the error handling in the vault client library *sucks*
-		if !errwrap.ContainsType(err, new(vaultapi.ErrPermissionDenied)) {
+		if errwrap.ContainsType(err, new(vaultapi.ErrVaultInaccessible)) {
 			// Connection level errors won't recover further down.
 			s.log().WithError(err).Error("Backend inaccessible")
 			return SecretTypeBackendError, nil
 		}
+
 		// Permission denied - continue to try listing (which might be allowed).
 		log.WithError(err).Debug("Permission denied (secret)")
 	}
@@ -152,7 +153,7 @@ func (s *SecretDir) lookup(ctx context.Context, lookupPath string) (SecretType, 
 	// Not a secret (or permission denied). Try listing to see if directory-like.
 	dirSecret, err := s.fs.logic().List(lookupPath)
 	if err != nil {
-		if !errwrap.ContainsType(err, new(vaultapi.ErrPermissionDenied)) {
+		if errwrap.ContainsType(err, new(vaultapi.ErrVaultInaccessible)) {
 			// Connection level errors won't recover further down.
 			log.WithError(err).Error("Error reading key")
 			return SecretTypeBackendError, nil

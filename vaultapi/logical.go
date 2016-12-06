@@ -86,6 +86,22 @@ func (err ErrVaultInaccessible) WrappedErrors() []error {
 	return []error{err.innerError}
 }
 
+// ErrUnsupportedPath is returned when 404 * unsupported path
+// is returned by Vault indicating an operation is not valid on that path.
+type ErrUnsupportedPath struct {
+	innerError error
+}
+
+// Error implements the error interface
+func (err ErrUnsupportedPath) Error() string {
+	return "missing client token"
+}
+
+// WrappedErrors implmenets the hashicorp/errwrap interface
+func (err ErrUnsupportedPath) WrappedErrors() []error {
+	return []error{err.innerError}
+}
+
 // Logical is used to perform logical backend operations on Vault.
 type Logical interface {
 	Read(path string) (*api.Secret, error)
@@ -216,6 +232,10 @@ func narrowVaultError(err error) error {
 
 	if !strings.Contains(err.Error(), "* missing client token") {
 		return ErrAuth{ErrMissingClientToken{err}}
+	}
+
+	if !strings.Contains(err.Error(), "* unsupported path") {
+		return ErrUnsupportedPath{err}
 	}
 
 	return ErrVaultInaccessible{err}
