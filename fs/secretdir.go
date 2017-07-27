@@ -11,8 +11,8 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	log "github.com/Sirupsen/logrus"
-	"github.com/asteris-llc/vaultfs/vaultapi"
+	log "github.com/sirupsen/logrus"
+	"github.com/wrouesnel/vaultfs/vaultapi"
 	"github.com/go-errors/errors"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/api"

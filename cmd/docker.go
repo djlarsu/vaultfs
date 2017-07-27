@@ -17,8 +17,8 @@ package cmd
 import (
 	"errors"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/asteris-llc/vaultfs/docker"
+	log "github.com/sirupsen/logrus"
+	"github.com/wrouesnel/vaultfs/docker"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
@@ -68,7 +68,7 @@ var dockerCmd = &cobra.Command{
 
 		handler := volume.NewHandler(driver)
 		log.WithField("socket", viper.GetString("socket")).Info("serving unix socket")
-		err := handler.ServeUnix("root", viper.GetString("socket"))
+		err := handler.ServeUnix(viper.GetString("socket"), 0)
 		if err != nil {
 			log.WithError(err).Fatal("failed serving")
 		}

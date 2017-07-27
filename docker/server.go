@@ -15,8 +15,8 @@
 package docker
 
 import (
-	"github.com/Sirupsen/logrus"
-	"github.com/asteris-llc/vaultfs/fs"
+	"github.com/sirupsen/logrus"
+	"github.com/wrouesnel/vaultfs/fs"
 	"github.com/hashicorp/vault/api"
 )
 

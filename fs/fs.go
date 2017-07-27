@@ -18,11 +18,11 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/go-errors/errors"
 	"github.com/hashicorp/vault/api"
 
-	"github.com/asteris-llc/vaultfs/vaultapi"
+	"github.com/wrouesnel/vaultfs/vaultapi"
 )
 
 // VaultFS is a vault filesystem.

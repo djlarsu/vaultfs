@@ -21,7 +21,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 )
 

@@ -18,8 +18,8 @@ import (
 	"log/syslog"
 	"net/url"
 
-	"github.com/Sirupsen/logrus"
-	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
+	"github.com/sirupsen/logrus"
+	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/rifflock/lfshook"
 	"github.com/spf13/viper"
 	"github.com/wercker/journalhook"

@@ -1,7 +1,7 @@
 language: go
 go:
 - 1.7
-go_import_path: github.com/asteris-llc/vaultfs
+go_import_path: github.com/wrouesnel/vaultfs
 script:
 - make
 deploy:
