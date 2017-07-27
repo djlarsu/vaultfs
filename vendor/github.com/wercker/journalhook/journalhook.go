@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	logrus "github.com/Sirupsen/logrus"
 	"github.com/coreos/go-systemd/journal"
+	logrus "github.com/sirupsen/logrus"
 )
 
 type JournalHook struct{}
