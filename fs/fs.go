@@ -18,7 +18,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"github.com/wrouesnel/go.log"
 	"github.com/go-errors/errors"
 	"github.com/hashicorp/vault/api"
 
@@ -34,7 +34,7 @@ type VaultFS struct {
 	root       string
 	conn       *fuse.Conn
 	mountpoint string
-	logger     *logrus.Entry // Context aware logger
+	logger     log.Logger // Context aware logger
 }
 
 // New returns a new VaultFS
@@ -63,12 +63,12 @@ func New(config *api.Config, mountpoint string, root string, token string, authM
 		logical:    vaultapi.NewVaultLogicalBackend(client, token, authMethod),
 		root:       root,
 		mountpoint: mountpoint,
-		logger:     logrus.WithField("address", config.Address),
+		logger:     log.WithField("address", config.Address),
 	}, nil
 }
 
-func (v *VaultFS) log() *logrus.Entry {
-	return logrus.WithFields(logrus.Fields{
+func (v *VaultFS) log() log.Logger {
+	return log.WithFields(log.Fields{
 		"vault_root": v.root,
 		"mountpoint": v.mountpoint,
 	})
@@ -94,7 +94,7 @@ func (v *VaultFS) Mount() error {
 		return err
 	}
 
-	logrus.Debug("starting to serve")
+	log.Debug("starting to serve")
 	return fs.Serve(v.conn, v)
 }
 

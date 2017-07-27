@@ -1,4 +1,4 @@
-// Package LFShook allows users to write to the logfiles using logrus.
+// Package LFShook allows users to write to the logfiles using log.
 package lfshook
 
 import (
@@ -9,26 +9,26 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/wrouesnel/go.log"
 )
 
 // We are logging to file, strip colors to make the output more readable
-var txtFormatter = &logrus.TextFormatter{DisableColors: true}
+var txtFormatter = &log.TextFormatter{DisableColors: true}
 
 // Map for linking a log level to a log file
 // Multiple levels may share a file, but multiple files may not be used for one level
-type PathMap map[logrus.Level]string
+type PathMap map[log.Level]string
 
 // Alternatively map a log level to an io.Writer
-type WriterMap map[logrus.Level]io.Writer
+type WriterMap map[log.Level]io.Writer
 
 // Hook to handle writing to local log files.
 type lfsHook struct {
 	paths     PathMap
 	writer    WriterMap
-	levels    []logrus.Level
+	levels    []log.Level
 	lock      *sync.Mutex
-	formatter logrus.Formatter
+	formatter log.Formatter
 }
 
 // Given a map with keys equal to log levels.
@@ -61,19 +61,19 @@ func NewHook(levelMap interface{}) *lfsHook {
 }
 
 // Replace the color stripped default formatter with a custom formatter
-func (hook *lfsHook) SetFormatter(formatter logrus.Formatter) {
+func (hook *lfsHook) SetFormatter(formatter log.Formatter) {
 	hook.formatter = formatter
 
 	switch hook.formatter.(type) {
-	case *logrus.TextFormatter:
-		textFormatter := hook.formatter.(*logrus.TextFormatter)
+	case *log.TextFormatter:
+		textFormatter := hook.formatter.(*log.TextFormatter)
 		textFormatter.DisableColors = true
 	}
 }
 
 // Open the file, write to the file, close the file.
 // Whichever user is running the function needs write permissions to the file or directory if the file does not yet exist.
-func (hook *lfsHook) Fire(entry *logrus.Entry) error {
+func (hook *lfsHook) Fire(entry *log.Entry) error {
 	if hook.writer != nil {
 		return hook.ioWrite(entry)
 	} else {
@@ -82,7 +82,7 @@ func (hook *lfsHook) Fire(entry *logrus.Entry) error {
 }
 
 // Write a log line to an io.Writer
-func (hook *lfsHook) ioWrite(entry *logrus.Entry) error {
+func (hook *lfsHook) ioWrite(entry *log.Entry) error {
 	var (
 		msg []byte
 		err error
@@ -110,7 +110,7 @@ func (hook *lfsHook) ioWrite(entry *logrus.Entry) error {
 }
 
 // Write a log line directly to a file
-func (hook *lfsHook) fileWrite(entry *logrus.Entry) error {
+func (hook *lfsHook) fileWrite(entry *log.Entry) error {
 	var (
 		fd   *os.File
 		path string
@@ -146,6 +146,6 @@ func (hook *lfsHook) fileWrite(entry *logrus.Entry) error {
 }
 
 // Return configured log levels
-func (hook *lfsHook) Levels() []logrus.Level {
+func (hook *lfsHook) Levels() []log.Level {
 	return hook.levels
 }

@@ -24,7 +24,7 @@ type Logger struct {
 	// formatters for examples.
 	Formatter Formatter
 	// The logging level the logger should log at. This is typically (and defaults
-	// to) `logrus.Info`, which allows Info(), Warn(), Error() and Fatal() to be
+	// to) `log.Info`, which allows Info(), Warn(), Error() and Fatal() to be
 	// logged.
 	Level Level
 	// Used to sync writing to the log. Locking is enabled by Default
@@ -62,7 +62,7 @@ func (mw *MutexWrap) Disable() {
 //      Out: os.Stderr,
 //      Formatter: new(JSONFormatter),
 //      Hooks: make(LevelHooks),
-//      Level: logrus.DebugLevel,
+//      Level: log.DebugLevel,
 //    }
 //
 // It's recommended to make this a global instance called `log`.

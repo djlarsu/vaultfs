@@ -6,19 +6,19 @@ import (
 	"strings"
 
 	"github.com/coreos/go-systemd/journal"
-	logrus "github.com/sirupsen/logrus"
+	logrus "github.com/wrouesnel/go.log"
 )
 
 type JournalHook struct{}
 
 var (
-	severityMap = map[logrus.Level]journal.Priority{
-		logrus.DebugLevel: journal.PriDebug,
-		logrus.InfoLevel:  journal.PriInfo,
-		logrus.WarnLevel:  journal.PriWarning,
-		logrus.ErrorLevel: journal.PriErr,
-		logrus.FatalLevel: journal.PriCrit,
-		logrus.PanicLevel: journal.PriEmerg,
+	severityMap = map[log.Level]journal.Priority{
+		log.DebugLevel: journal.PriDebug,
+		log.InfoLevel:  journal.PriInfo,
+		log.WarnLevel:  journal.PriWarning,
+		log.ErrorLevel: journal.PriErr,
+		log.FatalLevel: journal.PriCrit,
+		log.PanicLevel: journal.PriEmerg,
 	}
 )
 
@@ -58,19 +58,19 @@ func stringifyEntries(data map[string]interface{}) map[string]string {
 	return entries
 }
 
-func (hook *JournalHook) Fire(entry *logrus.Entry) error {
+func (hook *JournalHook) Fire(entry *log.Entry) error {
 	return journal.Send(entry.Message, severityMap[entry.Level], stringifyEntries(entry.Data))
 }
 
 // `Levels()` returns a slice of `Levels` the hook is fired for.
-func (hook *JournalHook) Levels() []logrus.Level {
-	return []logrus.Level{
-		logrus.PanicLevel,
-		logrus.FatalLevel,
-		logrus.ErrorLevel,
-		logrus.WarnLevel,
-		logrus.InfoLevel,
-		logrus.DebugLevel,
+func (hook *JournalHook) Levels() []log.Level {
+	return []log.Level{
+		log.PanicLevel,
+		log.FatalLevel,
+		log.ErrorLevel,
+		log.WarnLevel,
+		log.InfoLevel,
+		log.DebugLevel,
 	}
 }
 
@@ -78,9 +78,9 @@ func (hook *JournalHook) Levels() []logrus.Level {
 // Sets log output to ioutil.Discard so stdout isn't captured.
 func Enable() {
 	if !journal.Enabled() {
-		logrus.Warning("Journal not available but user requests we log to it. Ignoring")
+		log.Warning("Journal not available but user requests we log to it. Ignoring")
 	} else {
-		logrus.AddHook(&JournalHook{})
-		logrus.SetOutput(ioutil.Discard)
+		log.AddHook(&JournalHook{})
+		log.SetOutput(ioutil.Discard)
 	}
 }

@@ -51,7 +51,7 @@ func Exit(code int) {
 	os.Exit(code)
 }
 
-// RegisterExitHandler adds a Logrus Exit handler, call logrus.Exit to invoke
+// RegisterExitHandler adds a Logrus Exit handler, call log.Exit to invoke
 // all handlers. The handlers will also be invoked when any Fatal log entry is
 // made.
 //

@@ -17,7 +17,7 @@ package cmd
 import (
 	"errors"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/wrouesnel/go.log"
 	"github.com/wrouesnel/vaultfs/docker"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/hashicorp/vault/api"

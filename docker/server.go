@@ -15,7 +15,7 @@
 package docker
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/wrouesnel/go.log"
 	"github.com/wrouesnel/vaultfs/fs"
 	"github.com/hashicorp/vault/api"
 )
@@ -44,7 +44,7 @@ func (s *Server) Mount() error {
 	err := s.fs.Mount()
 
 	if err != nil {
-		logrus.WithError(err).Error("error in server, stopping")
+		log.WithError(err).Error("error in server, stopping")
 		return err
 	}
 
@@ -57,7 +57,7 @@ func (s *Server) Unmount() error {
 	err := s.fs.Unmount()
 
 	if err != nil {
-		logrus.WithError(err).Error("could not unmount cleanly")
+		log.WithError(err).Error("could not unmount cleanly")
 	}
 
 	return err

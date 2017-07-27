@@ -17,7 +17,7 @@ package cmd
 import (
 	"os"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/wrouesnel/go.log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -50,8 +50,7 @@ func init() {
 
 	// logging flags
 	RootCmd.PersistentFlags().String("log-level", "info", "log level (one of fatal, error, warn, info, or debug)")
-	RootCmd.PersistentFlags().String("log-format", "text", "log level (one of text or json)")
-	RootCmd.PersistentFlags().String("log-destination", "stdout:", "log destination (file:/your/output, stdout:, journald:, or syslog://tag@host:port#protocol)")
+	RootCmd.PersistentFlags().String("log-format", "stderr", "log format. Defaults to stderr:. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true.")
 
 	RootCmd.PersistentFlags().String("auth-method", "cert", "authentication method to use if no token provided (supported: cert)")
 	RootCmd.PersistentFlags().StringP("token", "t", "", "The Vault Server token (optional if using certificate auth)")

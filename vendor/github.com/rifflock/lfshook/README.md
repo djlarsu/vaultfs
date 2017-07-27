@@ -5,7 +5,7 @@ Sometimes developers like to write directly to a file on the filesystem. This is
 ## Example
 ```go
 import (
-	log "github.com/sirupsen/logrus"
+	log "github.com/wrouesnel/go.log"
 	"github.com/rifflock/lfshook"
 )
 
@@ -45,8 +45,8 @@ In combination with pakages like [go-file-rotatelogs](https://github.com/lestrra
   )
 
   log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
-    logrus.InfoLevel: writer,
-    logrus.ErrorLevel: writer,
+    log.InfoLevel: writer,
+    log.ErrorLevel: writer,
   }))
 ```
 

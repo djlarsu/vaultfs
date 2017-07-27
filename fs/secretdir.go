@@ -11,7 +11,7 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	log "github.com/sirupsen/logrus"
+	log "github.com/wrouesnel/go.log"
 	"github.com/wrouesnel/vaultfs/vaultapi"
 	"github.com/go-errors/errors"
 	"github.com/hashicorp/errwrap"
@@ -119,7 +119,7 @@ func NewSecretDir(fs *VaultFS, lookupPath string) (*SecretDir, error) {
 	}, nil
 }
 
-func (s *SecretDir) log() *log.Entry {
+func (s *SecretDir) log() log.Logger {
 	return log.WithField("root", s.lookupPath)
 }
 

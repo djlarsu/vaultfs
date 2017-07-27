@@ -21,7 +21,7 @@ type Formatter interface {
 // This is to not silently overwrite `time`, `msg` and `level` fields when
 // dumping it. If this code wasn't there doing:
 //
-//  logrus.WithField("level", 1).Info("hello")
+//  log.WithField("level", 1).Info("hello")
 //
 // Would just silently drop the user provided level. Instead with this code
 // it'll logged as:

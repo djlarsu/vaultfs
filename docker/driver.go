@@ -21,7 +21,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/wrouesnel/go.log"
 	"github.com/docker/go-plugins-helpers/volume"
 )
 
@@ -89,7 +89,7 @@ func (d Driver) Remove(r volume.Request) volume.Response {
 	d.m.Lock()
 	defer d.m.Unlock()
 	mount := d.mountpoint(r.Name)
-	logger := logrus.WithFields(logrus.Fields{
+	logger := log.WithFields(log.Fields{
 		"name":       r.Name,
 		"mountpoint": mount,
 	})
@@ -116,7 +116,7 @@ func (d Driver) Mount(r volume.MountRequest) volume.Response {
 	defer d.m.Unlock()
 
 	mount := d.mountpoint(r.Name)
-	logger := logrus.WithFields(logrus.Fields{
+	logger := log.WithFields(log.Fields{
 		"name":       r.Name,
 		"mountpoint": mount,
 	})
@@ -163,7 +163,7 @@ func (d Driver) Unmount(r volume.UnmountRequest) volume.Response {
 	defer d.m.Unlock()
 
 	mount := d.mountpoint(r.Name)
-	logger := logrus.WithFields(logrus.Fields{
+	logger := log.WithFields(log.Fields{
 		"name":       r.Name,
 		"mountpoint": mount,
 	})
@@ -196,7 +196,7 @@ func (d Driver) mountpoint(name string) string {
 func (d Driver) Stop() []error {
 	d.m.Lock()
 	defer d.m.Unlock()
-	logrus.Debug("got stop request")
+	log.Debug("got stop request")
 
 	errs := []error{}
 	for _, server := range d.servers {

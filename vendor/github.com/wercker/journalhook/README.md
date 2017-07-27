@@ -23,8 +23,8 @@ If you'd like not to do that, it's as easy as:
 
 import (
     "github.com/wercker/journalhook"
-    "github.com/sirupsen/logrus"
+    "github.com/wrouesnel/go.log"
 )
 
-logrus.AddHook(&journalhook.JournalHook{})
+log.AddHook(&journalhook.JournalHook{})
 ```

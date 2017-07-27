@@ -8,7 +8,7 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	log "github.com/sirupsen/logrus"
+	log "github.com/wrouesnel/go.log"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )

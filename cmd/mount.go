@@ -20,7 +20,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/wrouesnel/go.log"
 	"github.com/wrouesnel/vaultfs/fs"
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
