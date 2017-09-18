@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"github.com/hashicorp/vault/api"
 	"strings"
+	"github.com/hashicorp/errwrap"
 )
+
+// ensure ErrAuth implements Wrapper at compile-time.
+var _ = errwrap.Wrapper(&ErrAuth{})
 
 // ErrAuth is returned when any sort of authentication failure is
 // observed (i.e. bad token, no token, permission denied).
@@ -95,6 +99,12 @@ type Logical interface {
 	Unwrap(wrappingToken string) (*api.Secret, error)
 }
 
+// AuthableLogical provides a method to request Auth'ing explicitely
+type AuthableLogical interface {
+	Logical
+	Auth() error
+}
+
 // Logical wrapper for the vault API logical construct so it can be
 // reimplemented with additional handling logic.
 type vaultBackend struct {
@@ -102,16 +112,20 @@ type vaultBackend struct {
 	logical    *api.Logical
 	token      string
 	authMethod string
+	authUser   string
+	authSecret string
 }
 
 // NewVaultLogicalBackend creates a new Vault logical backend that manages ensuring that
 // the vault connection is up to date and authenticated.
-func NewVaultLogicalBackend(client *api.Client, token string, authMethod string) Logical {
+func NewVaultLogicalBackend(client *api.Client, token string, authMethod string, authUser string, authSecret string) AuthableLogical {
 	return &vaultBackend{
 		client:     client,
 		logical:    client.Logical(),
 		token:      token,
 		authMethod: authMethod,
+		authUser: authUser,
+		authSecret: authSecret,
 	}
 }
 
@@ -120,8 +134,22 @@ func NewVaultLogicalBackend(client *api.Client, token string, authMethod string)
 func (b *vaultBackend) Auth() error {
 	// If no token try and get one with authMethod
 	if b.token == "" {
-		path := fmt.Sprintf("auth/%s/login", b.authMethod)
-		secret, err := b.logical.Write(path, nil)
+		var secret *api.Secret
+		var err error
+
+		switch b.authMethod {
+		case "cert":
+			path := fmt.Sprintf("auth/cert/login")
+			secret, err = b.logical.Write(path, nil)
+		case "ldap":
+			path := fmt.Sprintf("auth/ldap/login/%s", b.authUser)
+
+			ldapPassword := map[string]interface{}{
+				"password": b.authSecret,
+			}
+
+			secret, err = b.logical.Write(path, ldapPassword)
+		}
 
 		if err != nil {
 			return ErrAuthFailed{err}

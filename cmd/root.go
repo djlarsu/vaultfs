@@ -50,7 +50,7 @@ func init() {
 
 	// logging flags
 	RootCmd.PersistentFlags().String("log-level", "info", "log level (one of fatal, error, warn, info, or debug)")
-	RootCmd.PersistentFlags().String("log-format", "stderr", "log format. Defaults to stderr:. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true.")
+	RootCmd.PersistentFlags().String("log-format", "stderr:", "log format. Defaults to stderr:. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true.")
 
 	RootCmd.PersistentFlags().String("auth-method", "", "authentication method to use if no token provided (supported: cert,ldap)")
 	RootCmd.PersistentFlags().String("auth-user", "", "username to use for the specified authentication method (if supported)")
