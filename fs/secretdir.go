@@ -11,11 +11,11 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	log "github.com/wrouesnel/go.log"
-	"github.com/wrouesnel/vaultfs/vaultapi"
 	"github.com/go-errors/errors"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/api"
+	log "github.com/wrouesnel/go.log"
+	"github.com/wrouesnel/vaultfs/vaultapi"
 	"golang.org/x/net/context"
 )
 
@@ -25,43 +25,43 @@ var _ = fs.NodeStringLookuper(&SecretDir{})
 
 // Static map of directory items found under a non-listable secret
 var secretDirEntrys = map[string]fuse.Dirent{
-	"lease_id": fuse.Dirent{
+	"lease_id": {
 		Name:  "lease_id",
 		Inode: 0,
 		Type:  fuse.DT_File,
 	},
 	// LeaseDuration
-	"lease_duration": fuse.Dirent{
+	"lease_duration": {
 		Name:  "lease_duration",
 		Inode: 0,
 		Type:  fuse.DT_File,
 	},
 	// "Renewable" file is always empty
-	"renewable": fuse.Dirent{
+	"renewable": {
 		Name:  "renewable",
 		Inode: 0,
 		Type:  fuse.DT_File,
 	},
 	// Data is a directory
-	"data": fuse.Dirent{
+	"data": {
 		Name:  "data",
 		Inode: 0,
 		Type:  fuse.DT_Dir,
 	},
 	// Warnings is a file.
-	"warnings": fuse.Dirent{
+	"warnings": {
 		Name:  "warnings",
 		Inode: 0,
 		Type:  fuse.DT_File,
 	},
 	// Auth is a directory
-	"auth": fuse.Dirent{
+	"auth": {
 		Name:  "auth",
 		Inode: 0,
 		Type:  fuse.DT_Dir,
 	},
 	// WrapInfo is a directory
-	"wrap_info": fuse.Dirent{
+	"wrap_info": {
 		Name:  "wrap_info",
 		Inode: 0,
 		Type:  fuse.DT_Dir,

@@ -20,11 +20,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	log "github.com/wrouesnel/go.log"
-	"github.com/wrouesnel/vaultfs/fs"
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	log "github.com/wrouesnel/go.log"
+	"github.com/wrouesnel/vaultfs/fs"
 )
 
 // mountCmd represents the mount command
@@ -52,7 +52,8 @@ var mountCmd = &cobra.Command{
 		log.Info("Creating FUSE client for Vault server")
 
 		fs, err := fs.New(vaultConfig, args[0], viper.GetString("root"),
-			viper.GetString("token"), viper.GetString("auth-method"))
+			viper.GetString("token"), viper.GetString("auth-method"), viper.GetString("auth-user"),
+			viper.GetString("auth-secret"))
 		if err != nil {
 			log.WithError(err).Fatal("error creatinging fs")
 		}

@@ -153,10 +153,16 @@
 			"revisionTime": "2017-05-05T10:58:37+02:00"
 		},
 		{
-			"checksumSHA1": "eADiI+NzEwa3mvRh4qAKqor+HmQ=",
+			"checksumSHA1": "LUgTq9faDzSzf2fS07KSPkyODaU=",
+			"path": "github.com/hashicorp/vault",
+			"revision": "96da396adfe65fb950718a4de316369029239a17",
+			"revisionTime": "2017-09-16T17:12:20-04:00"
+		},
+		{
+			"checksumSHA1": "vPyq5PZGsOxhDwRGUmSgN3xqioM=",
 			"path": "github.com/hashicorp/vault/api",
-			"revision": "823cef4cbf142fb9ed5b4d599c4915b0b7925b57",
-			"revisionTime": "2017-07-26T17:59:14-04:00"
+			"revision": "96da396adfe65fb950718a4de316369029239a17",
+			"revisionTime": "2017-09-16T17:12:20-04:00"
 		},
 		{
 			"checksumSHA1": "au+CDkddC4sVFV15UaPiI7FvSw0=",

@@ -15,10 +15,10 @@
 package cmd
 
 import (
-	"github.com/wrouesnel/go.log"
-	"github.com/spf13/viper"
-	"golang.org/x/sys/unix"
 	"flag"
+	"github.com/spf13/viper"
+	"github.com/wrouesnel/go.log"
+	"golang.org/x/sys/unix"
 )
 
 func initLogging() {

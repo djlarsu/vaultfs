@@ -15,7 +15,9 @@ LINTER_DEADLINE ?= 30s
 export PATH := $(TOOLDIR)/bin:$(PATH)
 SHELL := env PATH=$(PATH) /bin/bash
 
-all: style lint test $(BINARY).x86_64
+all: style lint test binary
+
+binary: $(BINARY).x86_64
 
 $(BINARY).x86_64: $(GO_SRC)
 	CGO_ENABLED=0 go build -a -ldflags "-extldflags '-static' -X main.Version=$(VERSION)" -o $(BINARY).x86_64 .

@@ -21,8 +21,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/wrouesnel/go.log"
 	"github.com/docker/go-plugins-helpers/volume"
+	"github.com/wrouesnel/go.log"
 )
 
 type volumeName struct {
@@ -145,7 +145,7 @@ func (d Driver) Mount(r volume.MountRequest) volume.Response {
 		return volume.Response{Err: fmt.Sprintf("%s already exists and is not a directory", mount)}
 	}
 
-	server, err = NewServer(d.config.Vault, mount, d.config.Token, d.config.AuthMethod, r.Name)
+	server, err = NewServer(d.config.Vault, mount, d.config.Token, d.config.AuthMethod, d.config.AuthUser, d.config.AuthSecret, r.Name)
 	if err != nil {
 		logger.WithError(err).Error("error creating server")
 		return volume.Response{Err: err.Error()}

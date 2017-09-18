@@ -17,12 +17,12 @@ package cmd
 import (
 	"errors"
 
-	log "github.com/wrouesnel/go.log"
-	"github.com/wrouesnel/vaultfs/docker"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	log "github.com/wrouesnel/go.log"
+	"github.com/wrouesnel/vaultfs/docker"
 )
 
 // dockerCmd represents the docker command

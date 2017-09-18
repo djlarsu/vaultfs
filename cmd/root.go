@@ -17,9 +17,9 @@ package cmd
 import (
 	"os"
 
-	log "github.com/wrouesnel/go.log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	log "github.com/wrouesnel/go.log"
 )
 
 var cfgFile string
@@ -52,7 +52,9 @@ func init() {
 	RootCmd.PersistentFlags().String("log-level", "info", "log level (one of fatal, error, warn, info, or debug)")
 	RootCmd.PersistentFlags().String("log-format", "stderr", "log format. Defaults to stderr:. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true.")
 
-	RootCmd.PersistentFlags().String("auth-method", "cert", "authentication method to use if no token provided (supported: cert)")
+	RootCmd.PersistentFlags().String("auth-method", "", "authentication method to use if no token provided (supported: cert,ldap)")
+	RootCmd.PersistentFlags().String("auth-user", "", "username to use for the specified authentication method (if supported)")
+	RootCmd.PersistentFlags().String("auth-secret", "", "password or secret to use for an authentication method (if supported by auth-method)")
 	RootCmd.PersistentFlags().StringP("token", "t", "", "The Vault Server token (optional if using certificate auth)")
 
 	if err := viper.BindPFlags(RootCmd.PersistentFlags()); err != nil {

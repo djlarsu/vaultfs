@@ -18,11 +18,12 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"fmt"
-	"github.com/wrouesnel/go.log"
 	"github.com/go-errors/errors"
 	"github.com/hashicorp/vault/api"
+	"github.com/wrouesnel/go.log"
 
 	"github.com/wrouesnel/vaultfs/vaultapi"
+	"gopkg.in/AlecAivazis/survey.v1"
 )
 
 // VaultFS is a vault filesystem.
@@ -38,19 +39,45 @@ type VaultFS struct {
 }
 
 // New returns a new VaultFS
-func New(config *api.Config, mountpoint string, root string, token string, authMethod string) (*VaultFS, error) {
+func New(config *api.Config, mountpoint string, root string, token string, authMethod string, authUser string, authSecret string) (*VaultFS, error) {
 	client, err := api.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
 	// If no token is specified, then try authenticating with the specified auth-method
-	// (which defaults to cert, and will handle the most common use case).
 	if token == "" {
-		path := fmt.Sprintf("auth/%s/login", authMethod)
-		secret, err := client.Logical().Write(path, nil)
-		if err != nil {
-			return nil, err
+		var secret *api.Secret
+		switch authMethod {
+		case "cert":
+			var err error
+			path := fmt.Sprintf("auth/cert/login")
+			secret, err = client.Logical().Write(path, nil)
+			if err != nil {
+				return nil, err
+			}
+		case "ldap":
+			var err error
+			path := fmt.Sprintf("auth/ldap/login/%s", authUser)
+
+			if authSecret == "" {
+				passwordPrompt := &survey.Password{
+					Message: "Enter LDAP password (will be hidden):",
+				}
+				if err := survey.AskOne(passwordPrompt, &authSecret, nil); err != nil {
+					return nil, err
+				}
+			}
+
+			ldapPassword := map[string]interface{}{
+				"password": authSecret,
+			}
+
+			secret, err = client.Logical().Post(path, ldapPassword)
+			if err != nil {
+				return nil, err
+			}
 		}
+
 		if secret == nil {
 			return nil, errors.New("empty response from credential provider")
 		}
