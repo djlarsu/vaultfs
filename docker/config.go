@@ -27,7 +27,7 @@ type Config struct {
 	Token      string
 	AuthMethod string
 	AuthUser   string
-  AuthRole   string
+  	AuthRole   string
 	AuthSecret string
 	Vault      *api.Config
 }
