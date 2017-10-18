@@ -113,7 +113,7 @@ type vaultBackend struct {
 	token      string
 	authMethod string
 	authUser   string
-    authRole   string
+    	authRole   string
 	authSecret string
 }
 
