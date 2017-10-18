@@ -113,18 +113,20 @@ type vaultBackend struct {
 	token      string
 	authMethod string
 	authUser   string
+    authRole   string
 	authSecret string
 }
 
 // NewVaultLogicalBackend creates a new Vault logical backend that manages ensuring that
 // the vault connection is up to date and authenticated.
-func NewVaultLogicalBackend(client *api.Client, token string, authMethod string, authUser string, authSecret string) AuthableLogical {
+func NewVaultLogicalBackend(client *api.Client, token string, authMethod string, authUser string, authRole string, authSecret string) AuthableLogical {
 	return &vaultBackend{
 		client:     client,
 		logical:    client.Logical(),
 		token:      token,
 		authMethod: authMethod,
 		authUser: authUser,
+    authRole: authRole,
 		authSecret: authSecret,
 	}
 }
@@ -133,7 +135,7 @@ func NewVaultLogicalBackend(client *api.Client, token string, authMethod string,
 // always want to retry (i.e. backend down, policies changing out from under us) when we can't.
 func (b *vaultBackend) Auth() error {
 	// If no token try and get one with authMethod
-	if b.token == "" {
+	if b.token == "" || b.authMethod == "approle" {
 		var secret *api.Secret
 		var err error
 
@@ -149,6 +151,26 @@ func (b *vaultBackend) Auth() error {
 			}
 
 			secret, err = b.logical.Write(path, ldapPassword)
+    case "approle":
+      b.client.SetToken(b.authSecret)
+      path := fmt.Sprintf("auth/approle/role/%s/role-id", b.authRole)
+      secret, err = b.logical.Read(path)
+      if err != nil {
+        return ErrAuthFailed{err}
+      }
+      roleid := secret.Data["role_id"].(string)
+      empty := map[string]interface{}{
+        "nil": "foo",
+      }
+      path = fmt.Sprintf("auth/approle/role/%s/secret-id", b.authRole)
+      secret, err = b.logical.Write(path, empty)
+      secretid := secret.Data["secret_id"]
+      path = fmt.Sprintf("auth/approle/login")
+      secretAuth := map[string]interface{}{
+        "role_id": roleid,
+        "secret_id": secretid,
+      }
+      secret, err = b.logical.Write(path, secretAuth)
 		}
 
 		if err != nil {
@@ -158,7 +180,6 @@ func (b *vaultBackend) Auth() error {
 		if secret == nil {
 			return ErrAuthFailed{nil}
 		}
-
 		b.token = secret.Auth.ClientToken
 	}
 	// Set the current token.
@@ -174,10 +195,19 @@ func (b *vaultBackend) Read(path string) (*api.Secret, error) {
 	}
 
 	secret, err := b.logical.Read(path)
-	if err != nil {
-		err = narrowVaultError(err)
-	}
-	return secret, err
+    if err != nil {
+        err = narrowVaultError(err)
+        if b.authMethod == "approle" {
+            if err := b.Auth(); err != nil {
+                return nil, err
+            }
+            secret, err = b.logical.Read(path)
+            if err != nil {
+                err = narrowVaultError(err)
+            }
+        }
+    }
+    return secret, err
 }
 
 func (b *vaultBackend) List(path string) (*api.Secret, error) {
@@ -190,6 +220,15 @@ func (b *vaultBackend) List(path string) (*api.Secret, error) {
 	secret, err := b.logical.List(path)
 	if err != nil {
 		err = narrowVaultError(err)
+        if b.authMethod == "approle" {
+            if err := b.Auth(); err != nil {
+                return nil, err
+            }
+            secret, err = b.logical.List(path)
+            if err != nil {
+                err = narrowVaultError(err)
+            }
+        }
 	}
 	return secret, err
 }
@@ -202,10 +241,19 @@ func (b *vaultBackend) Write(path string, data map[string]interface{}) (*api.Sec
 	}
 
 	secret, err := b.logical.Write(path, data)
-	if err != nil {
-		err = narrowVaultError(err)
-	}
-	return secret, err
+    if err != nil {
+        err = narrowVaultError(err)
+        if b.authMethod == "approle" {
+            if err := b.Auth(); err != nil {
+                return nil, err
+            }
+            secret, err = b.logical.Write(path, data)
+            if err != nil {
+                err = narrowVaultError(err)
+            }
+        }
+    }
+    return secret, err
 }
 
 func (b *vaultBackend) Delete(path string) (*api.Secret, error) {
@@ -216,9 +264,18 @@ func (b *vaultBackend) Delete(path string) (*api.Secret, error) {
 	}
 
 	secret, err := b.logical.Delete(path)
-	if err != nil {
-		err = narrowVaultError(err)
-	}
+    if err != nil {
+        err = narrowVaultError(err)
+        if b.authMethod == "approle" {
+            if err := b.Auth(); err != nil {
+                return nil, err
+            }
+            secret, err = b.logical.Delete(path)
+            if err != nil {
+                err = narrowVaultError(err)
+            }
+        }
+    }
 	return secret, err
 }
 
@@ -230,10 +287,19 @@ func (b *vaultBackend) Unwrap(wrappingToken string) (*api.Secret, error) {
 	}
 
 	secret, err := b.logical.Unwrap(wrappingToken)
-	if err != nil {
-		err = narrowVaultError(err)
-	}
-	return secret, err
+    if err != nil {
+        err = narrowVaultError(err)
+        if b.authMethod == "approle" {
+            if err := b.Auth(); err != nil {
+                return nil, err
+            }
+            secret, err = b.logical.Unwrap(wrappingToken)
+            if err != nil {
+                err = narrowVaultError(err)
+            }
+        }
+    }
+    return secret, err
 }
 
 // narrowVaultError wraps a returned error with a specific error type based on its content

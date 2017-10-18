@@ -53,9 +53,9 @@ var mountCmd = &cobra.Command{
 
 		fs, err := fs.New(vaultConfig, args[0], viper.GetString("root"),
 			viper.GetString("token"), viper.GetString("auth-method"), viper.GetString("auth-user"),
-			viper.GetString("auth-secret"))
+			viper.GetString("auth-role"), viper.GetString("auth-secret"))
 		if err != nil {
-			log.WithError(err).Fatal("error creatinging fs")
+			log.WithError(err).Fatal("error creating fs")
 		}
 
 		// handle interrupt
