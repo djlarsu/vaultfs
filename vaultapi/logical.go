@@ -126,7 +126,7 @@ func NewVaultLogicalBackend(client *api.Client, token string, authMethod string,
 		token:      token,
 		authMethod: authMethod,
 		authUser: authUser,
-    authRole: authRole,
+    		authRole: authRole,
 		authSecret: authSecret,
 	}
 }
